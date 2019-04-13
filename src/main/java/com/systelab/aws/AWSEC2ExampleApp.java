@@ -51,27 +51,49 @@ public class AWSEC2ExampleApp {
 
         RunInstancesResponse response = ec2.runInstances(request);
 
-
         String instanceId = response.instances().get(0).instanceId();
 
+        addTagsToInstance("Name", name, instanceId);
+
+        System.out.printf("Successfully started EC2 instance %s based on AMI %s", instanceId, ami.toString());
+        return instanceId;
+    }
+
+    public void startInstance(String instanceId) {
+        StartInstancesRequest request = StartInstancesRequest.builder()
+                .instanceIds(instanceId).build();
+        ec2.startInstances(request);
+    }
+
+    public void rebootInstance(String instanceId) {
+        RebootInstancesRequest request = RebootInstancesRequest.builder()
+                .instanceIds(instanceId).build();
+        RebootInstancesResponse response = ec2.rebootInstances(request);
+    }
+
+    public void stopInstance(String instanceId) {
+        StopInstancesRequest request = StopInstancesRequest.builder()
+                .instanceIds(instanceId).build();
+        ec2.stopInstances(request);
+    }
+
+    private void addTagsToInstance(String key, String value, String... instances) {
         Tag tag = Tag.builder()
-                .key("Name")
-                .value(name)
+                .key(key)
+                .value(value)
                 .build();
 
         CreateTagsRequest tagsRequest = CreateTagsRequest.builder()
-                .resources(instanceId)
+                .resources(instances)
                 .tags(tag)
                 .build();
 
         ec2.createTags(tagsRequest);
-        System.out.printf("Successfully started EC2 instance %s based on AMI %s", instanceId, ami.toString());
-        return instanceId;
     }
 
     public static void main(String[] args) {
         AWSEC2ExampleApp example = new AWSEC2ExampleApp();
         example.getInstances();
-        example.createInstance("example", AMI.AMAZON_LINUX2_AMI,InstanceType.T2_MICRO);
+        example.createInstance("example", AMI.AMAZON_LINUX2_AMI, InstanceType.T2_MICRO);
     }
 }
