@@ -9,9 +9,6 @@ public enum AMI {
         this.amiID = amiID;
     }
 
-    /* (non-Javadoc)
-     * @see java.lang.Enum#toString()
-     */
     @Override
     public String toString() {
         return amiID;
