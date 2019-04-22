@@ -3,10 +3,19 @@ package com.systelab.aws;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.*;
+import software.amazon.awssdk.services.ec2.model.Tag;
+import software.amazon.awssdk.services.ssm.SsmClient;
+import software.amazon.awssdk.services.ssm.model.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class EC2Service {
     private Region region = Region.EU_CENTRAL_1;
     private Ec2Client ec2 = Ec2Client.builder().region(region).build();
+    private SsmClient ssm = SsmClient.builder().region(region).build();
 
     private void printInstance(Instance instance) {
         System.out.printf(
@@ -75,6 +84,33 @@ public class EC2Service {
                 .instanceIds(instanceId).build();
         ec2.stopInstances(request);
     }
+
+    public String runCommand(String instanceId, String script) {
+
+        List<String> value = new ArrayList();
+        value.add(script);
+
+        Map<String, List<String>> commands = new HashMap();
+        commands.put("commands", value);
+
+        SendCommandRequest request = SendCommandRequest.builder().instanceIds(instanceId).documentName("AWS-RunShellScript")
+                .parameters(commands).build();
+        SendCommandResponse response = ssm.sendCommand(request);
+        return response.command().commandId();
+    }
+
+    public boolean isCommandInvocationSuccess(String instanceId, String commandId) {
+        GetCommandInvocationRequest request = GetCommandInvocationRequest.builder().instanceId(instanceId).commandId(commandId).build();
+        GetCommandInvocationResponse response = ssm.getCommandInvocation(request);
+        return response.status() == CommandInvocationStatus.SUCCESS;
+    }
+
+    public String getCommandInvocationOutput(String instanceId, String commandId) {
+        GetCommandInvocationRequest request = GetCommandInvocationRequest.builder().instanceId(instanceId).commandId(commandId).build();
+        GetCommandInvocationResponse response = ssm.getCommandInvocation(request);
+        return response.standardOutputContent();
+    }
+
 
     private void addTagsToInstance(String key, String value, String... instances) {
         Tag tag = Tag.builder()
