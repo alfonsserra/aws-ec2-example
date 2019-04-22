@@ -85,6 +85,7 @@ public class EC2Service {
         ec2.stopInstances(request);
     }
 
+    // Remember to add the policy AmazonSSMFullAccess to the IAM role associated to the instance
     public String runCommand(String instanceId, String script) {
 
         List<String> value = new ArrayList();
@@ -111,7 +112,6 @@ public class EC2Service {
         return response.standardOutputContent();
     }
 
-
     private void addTagsToInstance(String key, String value, String... instances) {
         Tag tag = Tag.builder()
                 .key(key)
@@ -122,7 +122,6 @@ public class EC2Service {
                 .resources(instances)
                 .tags(tag)
                 .build();
-
         ec2.createTags(tagsRequest);
     }
 
