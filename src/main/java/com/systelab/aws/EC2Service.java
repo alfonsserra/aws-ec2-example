@@ -2,8 +2,8 @@ package com.systelab.aws;
 
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.*;
 import software.amazon.awssdk.services.ec2.model.Tag;
+import software.amazon.awssdk.services.ec2.model.*;
 import software.amazon.awssdk.services.ssm.SsmClient;
 import software.amazon.awssdk.services.ssm.model.*;
 
@@ -29,6 +29,8 @@ public class EC2Service {
                 instance.instanceType(),
                 instance.state().name(),
                 instance.monitoring().state());
+        System.out.println(instance.publicDnsName());
+
     }
 
     private void printReservation(Reservation reservation) {
@@ -50,9 +52,12 @@ public class EC2Service {
     }
 
     public String createInstance(String name, AMI ami, InstanceType type) throws Ec2Exception {
+        IamInstanceProfileSpecification spec = IamInstanceProfileSpecification.builder().name("EC2ReadS3AserraModulab").build();
+
         RunInstancesRequest request = RunInstancesRequest.builder()
                 .imageId(ami.toString())
                 .instanceType(type)
+                .iamInstanceProfile(spec)
                 .maxCount(1)
                 .minCount(1)
                 .build();
@@ -65,6 +70,20 @@ public class EC2Service {
 
         System.out.printf("Successfully started EC2Service instance %s based on AMI %s", instanceId, ami.toString());
         return instanceId;
+    }
+
+    public boolean isInstanceRunning(String instanceId) throws Ec2Exception {
+        DescribeInstancesRequest request = DescribeInstancesRequest.builder().instanceIds(instanceId).build();
+
+        DescribeInstancesResponse response = ec2.describeInstances(request);
+        InstanceStateName status=response.reservations().get(0).instances().get(0).state().name();
+        return status==InstanceStateName.RUNNING;
+    }
+
+    public boolean isInstanceCheckPassed(String instanceId) throws Ec2Exception {
+        DescribeInstanceStatusRequest request = DescribeInstanceStatusRequest.builder().instanceIds(instanceId).build();
+        DescribeInstanceStatusResponse response = ec2.describeInstanceStatus(request);
+        return response.instanceStatuses().stream().allMatch(is -> is.systemStatus().status().name().equals("OK"));
     }
 
     public void startInstance(String instanceId) {
